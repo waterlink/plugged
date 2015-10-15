@@ -1,4 +1,4 @@
-// plugged is a library for writing extendable CLI applications.
+// Package plugged is a library for writing extendable CLI applications.
 package plugged
 
 import (
