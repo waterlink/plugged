@@ -15,6 +15,27 @@ func TestGateway(t *testing.T) {
 		output      string
 	}{
 
+		"default message without any plugins": {
+			name:        "exampleapp",
+			description: "An example CLI application.",
+			scenario: [][]string{
+				{"exampleapp"},
+			},
+
+			output: dedent(`
+                              |USAGE: exampleapp command [options]
+                              |
+                              |exampleapp - An example CLI application.
+                              |
+                              |Available commands:
+                              |
+                              |- help - This info.
+                              |
+                              |To get help for any of commands you can do 'exampleapp help command'
+                              |or 'exampleapp command --help'.
+                      `),
+		},
+
 		"help message without any plugins": {
 			name:        "exampleapp",
 			description: "An example CLI application.",
