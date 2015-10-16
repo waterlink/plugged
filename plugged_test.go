@@ -55,12 +55,13 @@ func TestGateway(t *testing.T) {
 			path:        "./tmp/bin",
 
 			files: map[string]string{
-				"./tmp/bin/exampleapp-find": `#!/usr/bin/env sh
-arg=$1
-if test "$arg" = "--plugged-description"; then
-  echo -n "Find some stuff."
-fi
-`,
+				"./tmp/bin/exampleapp-find": dedent(`
+                                      |#!/usr/bin/env sh
+                                      |arg=$1
+                                      |if test "$arg" = "--plugged-description"; then
+                                      |  echo -n "Find some stuff."
+                                      |fi
+                              `),
 			},
 
 			scenario: [][]string{
@@ -90,18 +91,20 @@ fi
 			path:        "./tmp/bin",
 
 			files: map[string]string{
-				"./tmp/bin/exampleapp-find": `#!/usr/bin/env sh
-arg=$1
-if test "$arg" = "--plugged-description"; then
-  echo -n "Find some stuff."
-fi
-`,
-				"./tmp/bin/exampleapp-activate": `#!/usr/bin/env sh
-arg=$1
-if test "$arg" = "--plugged-description"; then
-  echo -n "Activate stuff."
-fi
-`,
+				"./tmp/bin/exampleapp-find": dedent(`
+                                      |#!/usr/bin/env sh
+                                      |arg=$1
+                                      |if test "$arg" = "--plugged-description"; then
+                                      |  echo -n "Find some stuff."
+                                      |fi
+                              `),
+				"./tmp/bin/exampleapp-activate": dedent(`
+                                      |#!/usr/bin/env sh
+                                      |arg=$1
+                                      |if test "$arg" = "--plugged-description"; then
+                                      |  echo -n "Activate stuff."
+                                      |fi
+                              `),
 			},
 
 			scenario: [][]string{
@@ -133,18 +136,20 @@ fi
 			path:        "./tmp/bin",
 
 			files: map[string]string{
-				"./tmp/bin/exampleapp-find": `#!/usr/bin/env sh
-arg=$1
-if test "$arg" = "--plugged-description"; then
-  echo -n "Find some stuff."
-fi
-`,
-				"./tmp/bin/exampleapp-activate": `#!/usr/bin/env sh
-arg=$1
-if test "$arg" = "--plugged-description"; then
-  echo -n "Activate stuff."
-fi
-`,
+				"./tmp/bin/exampleapp-find": dedent(`
+                                      |#!/usr/bin/env sh
+                                      |arg=$1
+                                      |if test "$arg" = "--plugged-description"; then
+                                      |  echo -n "Find some stuff."
+                                      |fi
+                              `),
+				"./tmp/bin/exampleapp-activate": dedent(`
+                                      |#!/usr/bin/env sh
+                                      |arg=$1
+                                      |if test "$arg" = "--plugged-description"; then
+                                      |  echo -n "Activate stuff."
+                                      |fi
+                              `),
 			},
 
 			scenario: [][]string{
@@ -225,8 +230,10 @@ fi
 			path:        "./tmp/bin",
 
 			files: map[string]string{
-				"./tmp/bin/exampleapp-activate": `#!/usr/bin/env sh
-echo -n "Activate stuff."`,
+				"./tmp/bin/exampleapp-activate": dedent(`
+                                      |#!/usr/bin/env sh
+                                      |echo -n "Activate stuff."
+                              `),
 			},
 
 			scenario: [][]string{
@@ -289,15 +296,18 @@ echo -n "Activate stuff."`,
 			path:        "./tmp/bin",
 
 			files: map[string]string{
-				"./tmp/bin/exampleapp-activate": `#!/usr/bin/env sh
-echo -n "Activate stuff."`,
-				"./tmp/bin/exampleapp-find": `#!/usr/bin/env sh
-if test "$1" = "--plugged-description"; then
-  echo -n "Activate stuff."
-else
-  echo "Found $1 and maybe($2)."
-fi
-`,
+				"./tmp/bin/exampleapp-activate": dedent(`
+                                      |#!/usr/bin/env sh
+                                      |echo -n "Activate stuff."
+                              `),
+				"./tmp/bin/exampleapp-find": dedent(`
+                                      |#!/usr/bin/env sh
+                                      |if test "$1" = "--plugged-description"; then
+                                      |  echo -n "Activate stuff."
+                                      |else
+                                      |  echo "Found $1 and maybe($2)."
+                                      |fi
+                              `),
 			},
 
 			scenario: [][]string{
