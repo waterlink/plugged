@@ -8,6 +8,13 @@ import (
 	"github.com/boltdb/bolt"
 )
 
+var builtinHandlers = map[string]actionHandler{
+	"help":              actionHandler((*GatewayT).helpAction),
+	"--plugged-install": actionHandler((*GatewayT).installAction),
+}
+
+type actionHandler func(g *GatewayT, action string, args []string) error
+
 // GatewayT represents a "Gateway" CLI application configuration.
 type GatewayT struct {
 	Stdin       io.Reader
@@ -21,44 +28,12 @@ type GatewayT struct {
 
 // Run is for executing a command according to provided arguments.
 func (g *GatewayT) Run(args []string) error {
-	if len(args) == 1 || args[1] == "help" || args[1] == "--help" {
-		plugins, err := g.Plugins()
-		if err != nil {
+	action, args := argsToAction(args)
+
+	if handler, ok := builtinHandlers[action]; ok {
+		if err := handler(g, action, args); err != nil {
 			return err
 		}
-
-		commandList := &commandListView{
-			PluginList: plugins,
-		}
-
-		availableCommands, err := commandList.render()
-		if err != nil {
-			return err
-		}
-
-		help := &helpView{
-			Name:              g.Name,
-			Description:       g.Description,
-			AvailableCommands: availableCommands,
-		}
-
-		if err := help.render(g.Stdout); err != nil {
-			return err
-		}
-		return nil
-	}
-
-	if args[1] == "--plugged-install" {
-		plugins := args[2:]
-		for _, name := range plugins {
-			p := newPlugin(g.Name, name)
-
-			if err := p.install(g); err != nil {
-				fmt.Printf("%s: Failed to get metadata - %s\n", name, err)
-			}
-		}
-
-		return nil
 	}
 
 	return nil
@@ -113,4 +88,51 @@ func (g *GatewayT) updatePlugin(p *pluginT) error {
 
 		return nil
 	})
+}
+
+func (g *GatewayT) helpAction(string, []string) error {
+	plugins, err := g.Plugins()
+	if err != nil {
+		return err
+	}
+
+	commandList := &commandListView{
+		PluginList: plugins,
+	}
+
+	availableCommands, err := commandList.render()
+	if err != nil {
+		return err
+	}
+
+	help := &helpView{
+		Name:              g.Name,
+		Description:       g.Description,
+		AvailableCommands: availableCommands,
+	}
+
+	if err := help.render(g.Stdout); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (g *GatewayT) installAction(_ string, plugins []string) error {
+	for _, name := range plugins {
+		p := newPlugin(g.Name, name)
+
+		if err := p.install(g); err != nil {
+			fmt.Printf("%s: Failed to get metadata - %s\n", name, err)
+		}
+	}
+
+	return nil
+}
+
+func argsToAction(args []string) (string, []string) {
+	if len(args) == 1 || args[1] == "--help" {
+		return "help", []string{}
+	}
+
+	return args[1], args[2:]
 }
