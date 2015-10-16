@@ -56,3 +56,24 @@ func (v *commandListView) render() (string, error) {
 
 	return string(buf.Bytes()), nil
 }
+
+var missingPluginTemplate = template.Must(template.New("missingPluginView").Parse(
+	`[ERROR] Unable to find plugin '{{.Name}}'.
+Try installing it with '{{.AppName}} --plugged-install {{.Name}}'.
+Details: {{.Details}}
+
+`,
+))
+
+type missingPluginView struct {
+	Name    string
+	AppName string
+	Details string
+}
+
+func (v *missingPluginView) render(w io.Writer) error {
+	if err := missingPluginTemplate.Execute(w, v); err != nil {
+		return fmt.Errorf("Unable to execute missingPlugin template on %v - %s", v, err)
+	}
+	return nil
+}

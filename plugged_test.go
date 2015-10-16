@@ -2,8 +2,11 @@ package plugged
 
 import (
 	"bytes"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"regexp"
 	"strings"
 	"testing"
@@ -214,6 +217,98 @@ fi
                               |or 'exampleapp command --help'.
                       `),
 		},
+
+		"find command when find plugin is not installed but there are some plugins": {
+			name:        "exampleapp",
+			description: "An example CLI application.",
+			home:        "./tmp/home",
+			path:        "./tmp/bin",
+
+			files: map[string]string{
+				"./tmp/bin/exampleapp-activate": `#!/usr/bin/env sh
+echo -n "Activate stuff."`,
+			},
+
+			scenario: [][]string{
+				{"exampleapp", "--plugged-install", "activate"},
+				{"exampleapp", "find", "stuff"},
+			},
+
+			output: dedent(`
+                              |[ERROR] Unable to find plugin 'find'.
+                              |Try installing it with 'exampleapp --plugged-install find'.
+                              |Details: Plugin 'find' was not found
+                              |
+                              |USAGE: exampleapp command [options]
+                              |
+                              |exampleapp - An example CLI application.
+                              |
+                              |Available commands:
+                              |
+                              |- activate\t - Activate stuff.
+                              |- help\t\t - This info.
+                              |
+                              |To get help for any of commands you can do 'exampleapp help command'
+                              |or 'exampleapp command --help'.
+                      `),
+		},
+
+		"find command when find plugin is not installed": {
+			name:        "exampleapp",
+			description: "An example CLI application.",
+			home:        "./tmp/home",
+			path:        "./tmp/bin",
+			files:       map[string]string{},
+
+			scenario: [][]string{
+				{"exampleapp", "find", "stuff"},
+			},
+
+			output: dedent(`
+                              |[ERROR] Unable to find plugin 'find'.
+                              |Try installing it with 'exampleapp --plugged-install find'.
+                              |Details: There are no plugins installed
+                              |
+                              |USAGE: exampleapp command [options]
+                              |
+                              |exampleapp - An example CLI application.
+                              |
+                              |Available commands:
+                              |
+                              |- help\t - This info.
+                              |
+                              |To get help for any of commands you can do 'exampleapp help command'
+                              |or 'exampleapp command --help'.
+                      `),
+		},
+
+		"find command when find plugin is installed": {
+			name:        "exampleapp",
+			description: "An example CLI application.",
+			home:        "./tmp/home",
+			path:        "./tmp/bin",
+
+			files: map[string]string{
+				"./tmp/bin/exampleapp-activate": `#!/usr/bin/env sh
+echo -n "Activate stuff."`,
+				"./tmp/bin/exampleapp-find": `#!/usr/bin/env sh
+if test "$1" = "--plugged-description"; then
+  echo -n "Activate stuff."
+else
+  echo "Found $1 and maybe($2)."
+fi
+`,
+			},
+
+			scenario: [][]string{
+				{"exampleapp", "--plugged-install", "activate", "find"},
+				{"exampleapp", "find", "stuff", "things"},
+			},
+
+			output: dedent(`
+                              |Found stuff and maybe(things).
+                      `),
+		},
 	}
 
 	for exampleName, example := range examples {
@@ -247,6 +342,7 @@ fi
 				Home:        example.home,
 				Name:        example.name,
 				Description: example.description,
+				ExecFn:      dumbExec(stdout),
 			}
 
 			if err := gateway.Connect(); err != nil {
@@ -288,4 +384,22 @@ func dedent(s string) string {
 		acc += dedented + "\n"
 	}
 	return acc
+}
+
+func dumbExec(w io.Writer) func(string, []string, []string) error {
+	return func(binary string, args []string, _ []string) error {
+		args = args[1:]
+		cmd := exec.Command(binary, args...)
+
+		out, err := cmd.Output()
+		if err != nil {
+			return fmt.Errorf("Unable to execute %+v - %s", args, err)
+		}
+
+		if _, err := w.Write(out); err != nil {
+			return fmt.Errorf("Unable to write output to stdout %+v - %s", args, err)
+		}
+
+		return nil
+	}
 }

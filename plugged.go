@@ -22,6 +22,7 @@ type GatewayT struct {
 	Home        string
 	Name        string
 	Description string
+	ExecFn      func(string, []string, []string) error
 
 	store *bolt.DB
 }
@@ -34,9 +35,11 @@ func (g *GatewayT) Run(args []string) error {
 		if err := handler(g, action, args); err != nil {
 			return err
 		}
+
+		return nil
 	}
 
-	return nil
+	return g.runPlugin(action, args)
 }
 
 func (g *GatewayT) Connect() error {
@@ -124,6 +127,46 @@ func (g *GatewayT) installAction(_ string, plugins []string) error {
 		if err := p.install(g); err != nil {
 			fmt.Printf("%s: Failed to get metadata - %s\n", name, err)
 		}
+	}
+
+	return nil
+}
+
+func (g *GatewayT) runPlugin(name string, args []string) error {
+	err := g.store.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("plugins"))
+		if b == nil {
+			return fmt.Errorf("There are no plugins installed")
+		}
+
+		plugin, err := pluginFrom(b, name)
+		if err != nil {
+			return err
+		}
+
+		if err := plugin.run(g.ExecFn, args); err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		missingPlugin := &missingPluginView{
+			Name:    name,
+			AppName: g.Name,
+			Details: err.Error(),
+		}
+
+		if err := missingPlugin.render(g.Stdout); err != nil {
+			return fmt.Errorf(
+				"Unable to render missing plugin error: %+v - %s",
+				missingPlugin,
+				err,
+			)
+		}
+
+		return g.helpAction(name, args)
 	}
 
 	return nil
