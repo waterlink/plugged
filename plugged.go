@@ -2,43 +2,19 @@
 package plugged
 
 import (
-	"bytes"
 	"fmt"
 	"io"
-	"text/tabwriter"
-	"text/template"
 
 	"github.com/boltdb/bolt"
 )
 
-var (
-	commandListTemplate = template.Must(template.New("commandListView").Parse(
-		"{{range .PluginList}}\n- {{.Name}}\t - {{.Description}}{{end}}\n- help\t - This info.",
-	))
-
-	gatewayHelpTemplate = template.Must(template.New("gatewayHelpView").Parse(
-		`USAGE: {{.Name}} command [options]
-
-{{.Name}} - {{.Description}}
-
-Available commands:
-{{.AvailableCommands}}
-
-To get help for any of commands you can do '{{.Name}} help command'
-or '{{.Name}} command --help'.
-`,
-	))
-)
-
 // GatewayT represents a "Gateway" CLI application configuration.
 type GatewayT struct {
-	Stdin             io.Reader
-	Stdout            io.Writer
-	Home              string
-	Name              string
-	Description       string
-	PluginList        []*PluginT
-	AvailableCommands string
+	Stdin       io.Reader
+	Stdout      io.Writer
+	Home        string
+	Name        string
+	Description string
 
 	store *bolt.DB
 }
@@ -46,18 +22,27 @@ type GatewayT struct {
 // Run is for executing a command according to provided arguments.
 func (g *GatewayT) Run(args []string) error {
 	if len(args) == 1 || args[1] == "help" || args[1] == "--help" {
-		var err error
-
-		g.PluginList, err = g.Plugins()
+		plugins, err := g.Plugins()
 		if err != nil {
 			return err
 		}
 
-		if err := g.renderCommandListView(); err != nil {
+		commandList := &commandListView{
+			PluginList: plugins,
+		}
+
+		availableCommands, err := commandList.render()
+		if err != nil {
 			return err
 		}
 
-		if err := g.renderHelpView(); err != nil {
+		help := &helpView{
+			Name:              g.Name,
+			Description:       g.Description,
+			AvailableCommands: availableCommands,
+		}
+
+		if err := help.render(g.Stdout); err != nil {
 			return err
 		}
 		return nil
@@ -128,27 +113,4 @@ func (g *GatewayT) Plugins() ([]*PluginT, error) {
 	})
 
 	return plugins, err
-}
-
-func (g *GatewayT) renderHelpView() error {
-	if err := gatewayHelpTemplate.Execute(g.Stdout, g); err != nil {
-		return fmt.Errorf("Unable to execute helpView template on %v - %s", g, err)
-	}
-	return nil
-}
-
-func (g *GatewayT) renderCommandListView() error {
-	buf := &bytes.Buffer{}
-	w := tabwriter.NewWriter(buf, 0, 4, 0, '\t', 0)
-
-	if err := commandListTemplate.Execute(w, g); err != nil {
-		return fmt.Errorf("Unable to execute commandList template on %v - %s", g, err)
-	}
-
-	if err := w.Flush(); err != nil {
-		return fmt.Errorf("Unable to flush tabwriter - %s", err)
-	}
-
-	g.AvailableCommands = string(buf.Bytes())
-	return nil
 }
