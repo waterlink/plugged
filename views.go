@@ -39,7 +39,7 @@ var commandListTemplate = template.Must(template.New("commandListView").Parse(
 ))
 
 type commandListView struct {
-	PluginList []*PluginT
+	PluginList []*pluginT
 }
 
 func (v *commandListView) render() (string, error) {

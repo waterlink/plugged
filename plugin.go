@@ -8,24 +8,24 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-type PluginT struct {
+type pluginT struct {
 	Name        string `json:"Name"`
 	Description string `json:"Description"`
 	AppName     string `json:"AppName"`
 }
 
-func NewPlugin(appName, name string) *PluginT {
-	return &PluginT{
+func newPlugin(appName, name string) *pluginT {
+	return &pluginT{
 		Name:    name,
 		AppName: appName,
 	}
 }
 
-func ListPlugins(store *bolt.Bucket) ([]*PluginT, error) {
-	plugins := []*PluginT{}
+func listPlugins(store *bolt.Bucket) ([]*pluginT, error) {
+	plugins := []*pluginT{}
 
 	err := store.ForEach(func(_, data []byte) error {
-		plugin := &PluginT{}
+		plugin := &pluginT{}
 
 		if err := json.Unmarshal(data, plugin); err != nil {
 			fmt.Printf("Unable to unmarshal plugin data '%s' - %s, ignoring", data, err)
@@ -42,7 +42,7 @@ func ListPlugins(store *bolt.Bucket) ([]*PluginT, error) {
 	return plugins, nil
 }
 
-func (p *PluginT) Install(g *GatewayT) error {
+func (p *pluginT) install(g *GatewayT) error {
 	cmdName := p.AppName + "-" + p.Name
 	cmd := exec.Command(cmdName, "--plugged-description")
 
@@ -53,13 +53,13 @@ func (p *PluginT) Install(g *GatewayT) error {
 
 	p.Description = string(description)
 
-	if err := g.UpdatePlugin(p); err != nil {
+	if err := g.updatePlugin(p); err != nil {
 		return fmt.Errorf("Unable to save plugin to storage - %s", err)
 	}
 	return nil
 }
 
-func (p *PluginT) Save(store *bolt.Bucket) error {
+func (p *pluginT) save(store *bolt.Bucket) error {
 	data, err := json.Marshal(p)
 	if err != nil {
 		return fmt.Errorf("Unable to marshal plugin %+v to json - %s", *p, err)

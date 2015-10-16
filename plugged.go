@@ -51,9 +51,9 @@ func (g *GatewayT) Run(args []string) error {
 	if args[1] == "--plugged-install" {
 		plugins := args[2:]
 		for _, name := range plugins {
-			p := NewPlugin(g.Name, name)
+			p := newPlugin(g.Name, name)
 
-			if err := p.Install(g); err != nil {
+			if err := p.install(g); err != nil {
 				fmt.Printf("%s: Failed to get metadata - %s\n", name, err)
 			}
 		}
@@ -79,23 +79,8 @@ func (g *GatewayT) Disconnect() {
 	g.store.Close()
 }
 
-func (g *GatewayT) UpdatePlugin(p *PluginT) error {
-	return g.store.Update(func(tx *bolt.Tx) error {
-		b, err := tx.CreateBucketIfNotExists([]byte("plugins"))
-		if err != nil {
-			return fmt.Errorf("Unable to obtain bucket 'plugins' - %s", err)
-		}
-
-		if err := p.Save(b); err != nil {
-			return fmt.Errorf("Unable to save plugin to bucket 'plugins' - %s", err)
-		}
-
-		return nil
-	})
-}
-
-func (g *GatewayT) Plugins() ([]*PluginT, error) {
-	var plugins []*PluginT
+func (g *GatewayT) Plugins() ([]*pluginT, error) {
+	var plugins []*pluginT
 
 	err := g.store.View(func(tx *bolt.Tx) error {
 		var err error
@@ -105,7 +90,7 @@ func (g *GatewayT) Plugins() ([]*PluginT, error) {
 			return nil
 		}
 
-		if plugins, err = ListPlugins(b); err != nil {
+		if plugins, err = listPlugins(b); err != nil {
 			return fmt.Errorf("Unable to get plugins - %s", err)
 		}
 
@@ -113,4 +98,19 @@ func (g *GatewayT) Plugins() ([]*PluginT, error) {
 	})
 
 	return plugins, err
+}
+
+func (g *GatewayT) updatePlugin(p *pluginT) error {
+	return g.store.Update(func(tx *bolt.Tx) error {
+		b, err := tx.CreateBucketIfNotExists([]byte("plugins"))
+		if err != nil {
+			return fmt.Errorf("Unable to obtain bucket 'plugins' - %s", err)
+		}
+
+		if err := p.save(b); err != nil {
+			return fmt.Errorf("Unable to save plugin to bucket 'plugins' - %s", err)
+		}
+
+		return nil
+	})
 }
